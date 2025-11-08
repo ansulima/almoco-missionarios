@@ -1,8 +1,14 @@
 class HomeController < ApplicationController
   def index
-    @current_month = Date.today.beginning_of_month
+    @year = params[:year]&.to_i || Date.today.year
+    @month = params[:month]&.to_i || Date.today.month
+
+    @current_month = Date.new(@year, @month, 1)
+    @current_month = Date.today.beginning_of_month if @current_month > 1.year.from_now
+    @current_month = Date.today.beginning_of_month if @current_month < Date.today.beginning_of_month
+
     @schedulings = Scheduling.where(date: @current_month..@current_month.end_of_month)
-                             .index_by(&:date)
+                            .index_by(&:date)
   end
 
   def schedule

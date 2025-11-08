@@ -15,7 +15,29 @@
 <body class="bg-light">
 
 <div class="container mt-5">
-  <h1 class="text-center mb-4">Agendamento de Almoço para Missionários</h1>
+  <h1 class="text-center mb-2">Agendamento de Almoço para Missionários</h1>
+  <h3 class="text-center text-muted mb-4">
+    <%= I18n.l(@current_month, format: "%B de %Y").titleize %>
+  </h3>
+
+  <!-- Navegação de mês -->
+  <div class="d-flex justify-content-between mb-3">
+    <%= link_to calendar_month_path(
+          year: (@current_month - 1.month).year,
+          month: (@current_month - 1.month).month
+        ),
+        class: "btn btn-outline-secondary #{'disabled' if @current_month.beginning_of_month == Date.today.beginning_of_month}" do %>
+      Mês Anterior
+    <% end %>
+
+    <%= link_to calendar_month_path(
+          year: (@current_month + 1.month).year,
+          month: (@current_month + 1.month).month
+        ),
+        class: "btn btn-outline-secondary #{'disabled' if @current_month + 1.month > 1.year.from_now}" do %>
+      Próximo Mês
+    <% end %>
+  </div>
 
   <!-- Calendário -->
   <div class="card">

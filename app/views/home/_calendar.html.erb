@@ -33,7 +33,7 @@
                 <% else %>
                   <% if date >= today %>
                     <button class="btn btn-outline-primary btn-sm mt-1 schedule-btn"
-                            data-date="<%= date %>"
+                            data-date="<%= date.to_s %>"
                             <% if date < today %>disabled<% end %>>
                       Agendar
                     </button>
