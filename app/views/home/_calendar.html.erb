@@ -1,0 +1,52 @@
+<% 
+  today = Date.today
+  start_date = @current_month.beginning_of_month
+  end_date = @current_month.end_of_month
+  start_wday = start_date.wday
+%>
+
+<div class="calendar">
+  <table class="table table-bordered text-center">
+    <thead>
+      <tr>
+        <% %w[Dom Seg Ter Qua Qui Sex Sáb].each do |day| %>
+          <th><%= day %></th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% date = start_date - start_wday %>
+      <% while date <= end_date %>
+        <tr>
+          <% 7.times do %>
+            <% if date.month == @current_month.month %>
+              <% scheduling = @schedulings[date] %>
+              <td class="<%= 'table-success' if scheduling %> <%= 'text-muted' if date < today %>"
+                  style="height: 80px; vertical-align: top; position: relative;">
+                <div class="fw-bold"><%= date.day %></div>
+                <% if scheduling %>
+                  <small class="d-block"><%= scheduling.name %></small>
+                  <%= button_to "Cancelar", cancel_schedule_path(scheduling), 
+                        method: :delete, 
+                        class: "btn btn-danger btn-sm mt-1",
+                        data: { confirm: "Cancelar agendamento de #{scheduling.name}?" } %>
+                <% else %>
+                  <% if date >= today %>
+                    <button class="btn btn-outline-primary btn-sm mt-1 schedule-btn"
+                            data-date="<%= date %>"
+                            <% if date < today %>disabled<% end %>>
+                      Agendar
+                    </button>
+                  <% end %>
+                <% end %>
+              </td>
+            <% else %>
+              <td class="table-light"></td>
+            <% end %>
+            <% date += 1 %>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
