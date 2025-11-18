@@ -455,7 +455,7 @@ function openModal(id) {
       const warning = document.createElement("div");
       warning.id = "tokenWarning";
       warning.style.cssText = "background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.9rem; color: #856404;";
-      warning.innerHTML = `<strong>⚠️ Modo Offline:</strong> Configure um token GitHub para sincronizar os dados. <br><small>Seus agendamentos serão salvos apenas neste navegador.</small>`;
+      warning.innerHTML = `<strong>💡 Dica:</strong> Configure um token GitHub para ver os agendamentos em outros dispositivos. <br><small>Os dados serão sincronizados automaticamente. Sem token, os agendamentos ficam salvos apenas neste navegador.</small>`;
       modalContent.insertBefore(warning, modalContent.querySelector("h3").nextSibling);
     }
   }
@@ -498,7 +498,7 @@ async function cancelBooking(dateStr, event) {
 
 // Configurar token GitHub
 function setupGitHubToken() {
-  const token = prompt("Digite seu token GitHub (opcional):");
+  const token = prompt("Digite seu token GitHub para sincronizar agendamentos entre dispositivos:\n\nOpcional - sem token funciona apenas neste navegador");
   if (token) {
     localStorage.setItem('github_token', token);
     location.reload();
@@ -532,9 +532,9 @@ document.getElementById("closeConfirmBtn").onclick = () => closeModal("confirmMo
 // Adicionar botão para configurar token
 if (!GITHUB_TOKEN) {
   const setupBtn = document.createElement("button");
-  setupBtn.textContent = "⚙️ Configurar GitHub";
+  setupBtn.textContent = "🔄 Sincronizar Dispositivos";
   setupBtn.className = "btn";
-  setupBtn.style.cssText = "position: fixed; top: 10px; right: 10px; z-index: 1001; font-size: 0.8rem; padding: 8px 12px;";
+  setupBtn.style.cssText = "position: fixed; top: 10px; right: 10px; z-index: 1001; font-size: 0.8rem; padding: 8px 12px; background: #28a745;";
   setupBtn.onclick = setupGitHubToken;
   document.body.appendChild(setupBtn);
 }
