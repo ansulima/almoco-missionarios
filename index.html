@@ -193,6 +193,8 @@
     .btn-cancel, .btn-close { background: var(--gray); color: white; }
     .btn-close { background: var(--primary); }
 
+    .loading { text-align: center; padding: 2rem; color: #666; }
+
     /* Responsividade extra */
     @media (max-width: 768px) {
       header h1 { font-size: 1.7rem; }
@@ -256,7 +258,7 @@
   </style>
 </head>
 <body>
-  <div class="container"></div>
+  <div class="container">
     <header>
       <h1>Agendamento de Almoço</h1>
       <p>Para nossos queridos missionários ❤️</p>
@@ -282,6 +284,7 @@
     <div class="days" id="calendarDays">
       <!-- Dias serão gerados pelo JavaScript -->
     </div>
+    <div id="loading" class="loading">Carregando agendamentos...</div>
   </div>
 
   <!-- Modal de Agendamento -->
@@ -311,8 +314,235 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js"></script>
-</body>
-</html>
+<script>
+// ==================== CONFIGURAÇÃO (só altere aqui) ====================
+const GITHUB_TOKEN = localStorage.getItem('github_token') || ""; // Token será salvo no localStorage
+const REPO = "ansulima/almoco-missionarios";
+const FILE_PATH = "data/bookings.json";
+const RAW_URL = `https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}`;
+const API_URL = `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`;
+// =========================================================================
+
+let bookings = {};
+let currentMonth, currentYear;
+let selectedDate = null;
+
+async function fetchBookings() {
+  document.getElementById("loading").style.display = "block";
+  
+  // Tentar carregar do GitHub primeiro
+  if (GITHUB_TOKEN) {
+    try {
+      const response = await fetch(API_URL, { headers: { Authorization: `token ${GITHUB_TOKEN}` }});
+      if (response.ok) {
+        const data = await response.json();
+        bookings = JSON.parse(atob(data.content));
+        localStorage.setItem('bookings', JSON.stringify(bookings));
+      } else if (response.status === 404) {
+        bookings = {};
+        localStorage.setItem('bookings', JSON.stringify(bookings));
+      }
+    } catch (e) {
+      console.log("Falha ao carregar do GitHub, usando localStorage");
+    }
+  }
+  
+  // Fallback para localStorage
+  if (!GITHUB_TOKEN || Object.keys(bookings).length === 0) {
+    const localBookings = localStorage.getItem('bookings');
+    if (localBookings) {
+      bookings = JSON.parse(localBookings);
+    }
+  }
+  
+  document.getElementById("loading").style.display = "none";
+  renderCalendar(currentMonth, currentYear);
+}
+
+async function saveBookings() {
+  // Sempre salvar no localStorage
+  localStorage.setItem('bookings', JSON.stringify(bookings));
+  
+  // Tentar salvar no GitHub se tiver token
+  if (GITHUB_TOKEN) {
+    try {
+      const content = btoa(JSON.stringify(bookings, null, 2));
+      const response = await fetch(API_URL, {
+        method: "GET",
+        headers: { Authorization: `token ${GITHUB_TOKEN}` }
+      });
+      let sha = null;
+      if (response.ok) {
+        const data = await response.json();
+        sha = data.sha;
+      }
+
+      await fetch(API_URL, {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "Atualização de agendamento de almoço",
+          content: content,
+          sha: sha
+        })
+      });
+    } catch (e) {
+      console.log("Falha ao salvar no GitHub, dados mantidos no localStorage");
+    }
+  }
+}
+
+function renderCalendar(month, year) {
+  document.getElementById("calendarDays").innerHTML = "";
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  const monthName = new Date(year, month).toLocaleString('pt-BR', { month: 'long' });
+  const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  document.getElementById("monthYear").textContent = `${capitalizedMonth} de ${year}`;
+
+  // Dias vazios do mês anterior
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.classList.add('day', 'other-month');
+    document.getElementById("calendarDays").appendChild(empty);
+  }
+
+  // Dias do mês atual
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayEl = document.createElement("div");
+    dayEl.className = "day";
+    dayEl.innerHTML = `<div class="day-number">${day}</div>`;
+
+    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+      dayEl.classList.add("today");
+    }
+
+    if (bookings[dateStr]) {
+      dayEl.classList.add("booked");
+      dayEl.innerHTML += `<div class="person">${bookings[dateStr].name}</div>
+        <button class="cancel-btn" onclick="cancelBooking('${dateStr}', event)">Cancelar</button>`;
+    } else {
+      dayEl.onclick = () => {
+        selectedDate = dateStr;
+        document.getElementById("selectedDate").textContent = formatDate(dateStr);
+        openModal("bookingModal");
+      };
+    }
+
+    document.getElementById("calendarDays").appendChild(dayEl);
+  }
+}
+
+function formatDate(dateStr) {
+  const date = new Date(dateStr + 'T12:00:00');
+  return date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+    .replace(/^\w/, c => c.toUpperCase());
+}
+
+function openModal(id) { 
+  document.getElementById(id).style.display = "flex";
+  
+  // Se for modal de agendamento e não tiver token, mostrar aviso
+  if (id === "bookingModal" && !GITHUB_TOKEN) {
+    const modalContent = document.querySelector("#bookingModal .modal-content");
+    if (!document.getElementById("tokenWarning")) {
+      const warning = document.createElement("div");
+      warning.id = "tokenWarning";
+      warning.style.cssText = "background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.9rem; color: #856404;";
+      warning.innerHTML = `<strong>⚠️ Modo Offline:</strong> Configure um token GitHub para sincronizar os dados. <br><small>Seus agendamentos serão salvos apenas neste navegador.</small>`;
+      modalContent.insertBefore(warning, modalContent.querySelector("h3").nextSibling);
+    }
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+  if (id === "bookingModal") {
+    document.getElementById("personName").value = "";
+    document.getElementById("personPhone").value = "";
+  }
+}
+
+async function confirmBooking() {
+  const name = document.getElementById("personName").value.trim();
+  const phone = document.getElementById("personPhone").value.trim();
+  if (!name || !phone) {
+    alert("Preencha nome e telefone!");
+    return;
+  }
+
+  bookings[selectedDate] = { name, phone };
+  await saveBookings();
+  closeModal("bookingModal");
+  document.getElementById("confirmDate").textContent = formatDate(selectedDate);
+  document.getElementById("confirmName").textContent = name;
+  document.getElementById("confirmPhone").textContent = phone;
+  openModal("confirmModal");
+  renderCalendar(currentMonth, currentYear);
+}
+
+async function cancelBooking(dateStr, event) {
+  event.stopPropagation();
+  if (confirm(`Cancelar agendamento de ${bookings[dateStr].name}?`)) {
+    delete bookings[dateStr];
+    await saveBookings();
+    renderCalendar(currentMonth, currentYear);
+  }
+}
+
+// Configurar token GitHub
+function setupGitHubToken() {
+  const token = prompt("Digite seu token GitHub (opcional):");
+  if (token) {
+    localStorage.setItem('github_token', token);
+    location.reload();
+  }
+}
+
+// Navegação de meses
+document.getElementById("prevMonth").onclick = () => { 
+  currentMonth--; 
+  if (currentMonth < 0) { 
+    currentMonth = 11; 
+    currentYear--; 
+  } 
+  renderCalendar(currentMonth, currentYear); 
+};
+
+document.getElementById("nextMonth").onclick = () => { 
+  currentMonth++; 
+  if (currentMonth > 11) { 
+    currentMonth = 0; 
+    currentYear++; 
+  } 
+  renderCalendar(currentMonth, currentYear); 
+};
+
+// Event listeners dos botões
+document.getElementById("confirmBookingBtn").onclick = confirmBooking;
+document.getElementById("cancelBookingBtn").onclick = () => closeModal("bookingModal");
+document.getElementById("closeConfirmBtn").onclick = () => closeModal("confirmModal");
+
+// Adicionar botão para configurar token
+if (!GITHUB_TOKEN) {
+  const setupBtn = document.createElement("button");
+  setupBtn.textContent = "⚙️ Configurar GitHub";
+  setupBtn.className = "btn";
+  setupBtn.style.cssText = "position: fixed; top: 10px; right: 10px; z-index: 1001; font-size: 0.8rem; padding: 8px 12px;";
+  setupBtn.onclick = setupGitHubToken;
+  document.body.appendChild(setupBtn);
+}
+
+// Iniciar
+currentMonth = new Date().getMonth();
+currentYear = new Date().getFullYear();
+fetchBookings();
+</script>
 </body>
 </html>
