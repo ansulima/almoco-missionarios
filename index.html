@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Agendamento de Almoço para Missionários</title>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
@@ -109,7 +109,7 @@
 
     .day {
       background: white;
-      min-height: 120px;
+      min-height: 100px;
       padding: 0.8rem;
       cursor: pointer;
       transition: all 0.3s;
@@ -117,6 +117,8 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
+      align-items: center;
+      text-align: center;
     }
 
     .day:hover {
@@ -251,15 +253,178 @@
     }
 
     @media (max-width: 768px) {
-      .calendar-header {
+      body {
+        padding: 10px 0;
+      }
+      
+      .container {
+        margin: 0 10px;
+        border-radius: 15px;
+      }
+      
+      header {
         padding: 1.5rem;
       }
+      
+      header h1 {
+        font-size: 1.8rem;
+      }
+      
+      header p {
+        font-size: 1rem;
+      }
+      
+      .calendar-header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
       .calendar-header h2 {
+        font-size: 1.4rem;
+      }
+      
+      .nav-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+      }
+      
+      .weekdays div {
+        padding: 0.6rem;
+        font-size: 0.85rem;
+      }
+      
+      .day {
+        min-height: 80px;
+        padding: 0.5rem;
+      }
+      
+      .day-number {
+        font-size: 1.1rem;
+      }
+      
+      .person {
+        font-size: 0.75rem;
+      }
+      
+      .cancel-btn {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+      }
+      
+      .modal-content {
+        margin: 20px;
+        padding: 1.5rem;
+      }
+      
+      .modal h3 {
+        font-size: 1.2rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        margin: 0 5px;
+        border-radius: 10px;
+      }
+      
+      header {
+        padding: 1rem;
+      }
+      
+      header h1 {
         font-size: 1.5rem;
       }
+      
+      header p {
+        font-size: 0.9rem;
+      }
+      
+      .calendar-header h2 {
+        font-size: 1.2rem;
+      }
+      
+      .weekdays div {
+        padding: 0.4rem;
+        font-size: 0.75rem;
+      }
+      
       .day {
-        min-height: 90px;
-        padding: 0.5rem;
+        min-height: 70px;
+        padding: 0.3rem;
+      }
+      
+      .day-number {
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+      }
+      
+      .person {
+        font-size: 0.7rem;
+        margin-top: 0.2rem;
+      }
+      
+      .cancel-btn {
+        font-size: 0.65rem;
+        padding: 2px 5px;
+        margin-top: 0.3rem;
+      }
+      
+      .modal-content {
+        margin: 10px;
+        padding: 1rem;
+        width: 95%;
+      }
+      
+      .modal h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      
+      .modal input {
+        padding: 10px;
+        font-size: 0.9rem;
+      }
+      
+      .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        margin: 0 4px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .weekdays div {
+        font-size: 0.65rem;
+        padding: 0.3rem;
+      }
+      
+      .day {
+        min-height: 60px;
+        padding: 0.2rem;
+      }
+      
+      .day-number {
+        font-size: 0.9rem;
+      }
+      
+      .person {
+        font-size: 0.6rem;
+        line-height: 1.2;
+      }
+      
+      .cancel-btn {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+      }
+      
+      header h1 {
+        font-size: 1.3rem;
+      }
+      
+      header p {
+        font-size: 0.8rem;
       }
     }
   </style>
