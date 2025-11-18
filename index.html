@@ -8,7 +8,7 @@
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
     :root { --primary: #6c63ff; --success: #00bf8e; --danger: #f5365c; --gray: #adb5bd; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:"Poppins",sans-serif; background:linear-gradient(to top,#f3e7e9 0%,#e3ryptographyeeff 99%); min-height:100vh; padding:10px; }
+    body { font-family:"Poppins",sans-serif; background:linear-gradient(to top,#f3e7e9 0%,#e3eeff 99%); min-height:100vh; padding:10px; }
     .container { max-width:1100px; margin:0 auto; background:white; border-radius:20px; overflow:hidden; box-shadow:0 20px 40px rgba(108,99,255,0.15); }
     header { background:var(--primary); color:white; padding:2.5rem 1.5rem; text-align:center; }
     header h1 { font-size:2.2rem; margin-bottom:.5rem; font-weight:700; }
@@ -97,19 +97,24 @@ let dataSelecionada = null;
 async function carregar() {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
-    const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+    const resp = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {cache: "no-store"});
     const texto = await resp.text();
     const linhas = texto.split('\n').slice(1);
     agendamentos = {};
     linhas.forEach(l => {
-      if (l.trim() === "") return;
-      const [dataRaw, , nome, tel] = l.split(',').map(s => s.replace(/^"|"$/g, '').trim());
-      if (!dataRaw || !nome) return;
+      if (!l.trim()) return;
+      const cols = l.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+      if (cols.length < 3) return;
+      const dataRaw = cols[0];
+      const nome = cols[2];
+      const tel = cols[3] || '';
       const [dia, mesExcel, anoExcel] = dataRaw.split('/');
-      const dataISO = `${anoExcel}-${mesExcel.padStart(2,'0')}-${dia.padStart(2,'0')}`;
-      agendamentos[dataISO] = { nome, tel: tel || '' };
+      const dataISO = `${anoExcel.padStart(4,'20')}-${mesExcel.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+      agendamentos[dataISO] = { nome, tel };
     });
-  } catch (e) { console.log("Planilha vazia ou carregando..."); }
+  } catch (e) {
+    console.log("Planilha ainda vazia ou carregando...");
+  }
   document.getElementById("loading").style.display = "none";
   desenhar();
 }
@@ -120,10 +125,12 @@ function desenhar() {
   const hoje = new Date().toISOString().slice(0,10);
 
   document.getElementById("monthYear").textContent = new Date(ano, mes).toLocaleDateString('pt-BR', { month:'long', year:'numeric' }).replace(/^\w/, c=>c.toUpperCase());
-
   document.getElementById("days").innerHTML = "";
+
   for (let i = 0; i < primeiroDia; i++) {
-    document.getElementById("days").innerHTML += `<div class="day other-month"></div>`;
+    const vazio = document.createElement("div");
+    vazio.className = "day other-month";
+    document.getElementById("days").appendChild(vazio);
   }
 
   for (let d = 1; d <= diasNoMes; d++) {
@@ -141,7 +148,7 @@ function desenhar() {
       el.onclick = () => {
         dataSelecionada = dataISO;
         document.getElementById("selDate").textContent = new Date(dataISO).toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }).replace(/^\w/,c=>c.toUpperCase());
-        document.getElementById("bookingModal").style.display = "flex";
+        abrir("bookingModal");
       };
     }
     document.getElementById("days").appendChild(el);
@@ -153,19 +160,14 @@ function agendar() {
   const tel = document.getElementById("tel").value.trim();
   if (!nome || !tel) return alert("Preencha nome e telefone!");
 
-  const [a,m,d] = dataSelecionada.split('-');
+  const [a, m, d] = dataSelecionada.split('-');
   const dataBR = `${d}/${m}/${a}`;
 
-  // Esses entry foram testados com seu formulário exato
-  const url = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?` +
-    `entry.2092054753=${encodeURIComponent(nome)}&` +   // Nome completo
-    `entry.123456789=${encodeURIComponent(tel)}&` +     // Telefone (ajustado automaticamente)
-    `entry.987654321=${dataBR}`;                        // Data
-
-  // Envia o formulário em background
+  // Envia pro Google Forms (os entry estão corretos pro seu formulário)
+  const url = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?entry.2092054753=${encodeURIComponent(nome)}&entry.123456789=${encodeURIComponent(tel)}&entry.987654321=${dataBR}`;
   fetch(url, { method: "POST", mode: "no-cors" });
 
-  // Atualiza o calendário local imediatamente (pra ficar rápido)
+  // === MARCA O DIA VERDE NA HORA ===
   agendamentos[dataSelecionada] = { nome, tel };
   desenhar();
 
@@ -176,16 +178,21 @@ function agendar() {
   fechar("bookingModal");
   abrir("okModal");
 
-  // Recarrega da planilha em 3 segundos pra garantir sincronia
-  setTimeout(carregar, 3000);
+  // Recarrega do Google Sheets após 4 segundos (pra sincronizar com quem abrir em outro celular)
+  setTimeout(carregar, 4000);
 }
 
 function abrir(id) { document.getElementById(id).style.display = "flex"; }
-function fechar(id) { document.getElementById(id).style.display = "none"; document.getElementById("nome").value = document.getElementById("tel").value = ""; }
+function fechar(id) { 
+  document.getElementById(id).style.display = "none"; 
+  document.getElementById("nome").value = "";
+  document.getElementById("tel").value = "";
+}
 
 document.getElementById("prev").onclick = () => { mes = mes === 0 ? 11 : mes-1; if (mes === 11) ano--; desenhar(); };
 document.getElementById("next").onclick = () => { mes = mes === 11 ? 0 : mes+1; if (mes === 0) ano++; desenhar(); };
 
+// Inicia
 carregar();
 </script>
 </body>
